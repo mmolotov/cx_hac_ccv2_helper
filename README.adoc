@@ -1,0 +1,502 @@
+= hac-helper
+
+CLI tool for authenticating against the *SAP Commerce Cloud v2 (CCV2)* portal and running HAC operations. Uses IAS OAuth2 SSO via browser emulation — no OAuth tokens or API keys required.
+
+== Disclaimer
+
+This project is an independent open-source tool and is not affiliated with, endorsed by, or supported by SAP SE or its subsidiaries. SAP Commerce Cloud, SAP IAS, and related product names are trademarks of SAP SE.
+
+Use of this tool is subject to your organization's SAP service agreement. You are solely responsible for ensuring that your use complies with applicable terms of service.
+
+== License
+
+MIT License. See link:LICENSE[LICENSE] for details.
+
+== Features
+
+* IAS OAuth2 SSO authentication with TOTP two-factor support
+* Encrypted credential vault (AES-256-GCM + Argon2id)
+* Session caching — skip re-auth for 1 hour
+* Multi-project / multi-subscription config (per-project YAML files)
+* Portal V1 API access: environments, services/aspects, replica routes
+* Interactive `config setup` wizard — auto-downloads environments and aspects
+* `config refresh` — re-fetches aspects and routes from the portal, updates config in place
+* `flexsearch` — execute FlexibleSearch or direct SQL via HAC
+* `count` — count items of a given type with optional WHERE clause
+* `enumcodes` — list all codes for a SAP Commerce enum type
+* `groovy` — execute Groovy scripts via HAC console
+* `loglevel` — change Log4j logger levels at runtime
+* `cache clear` — clear region cache across all nodes
+* `cronjobs` — query CronJob execution statistics
+* `uptime` — show node start time and uptime
+
+== Requirements
+
+* Go 1.22+
+* Access to `portal.commerce.ondemand.com` with a valid SAP IAS account
+
+== Installation
+
+[source,bash]
+----
+git clone https://github.com/mmolotov/cx_hac_ccv2_helper
+cd cx_hac_ccv2_helper
+go build -o hac-helper .
+----
+
+== Quick Start
+
+The fastest way to get started is the interactive setup wizard:
+
+[source,bash]
+----
+./hac-helper config setup
+----
+
+This will:
+
+1. Prompt for project name, subscription alias, and CCV2 subscription ID
+2. Prompt for vault master password and SAP credentials. It is used to store passwords locally in the encrypted file
+3. Authenticate against the portal
+4. Fetch all environments and their service aspects (including replica routes)
+5. Let you confirm/override URLs for each aspect
+6. Prompt for HAC credentials (global or per-environment)
+7. Save per-project config and encrypted credentials
+
+== Configuration
+
+Config lives in `.config/` relative to the working directory (where the binary is run).
+Override the location with the `HAC_HELPER_CONFIG_DIR` environment variable.
+
+=== Per-project config files
+
+Each project is stored in `.config/projects/{project}.yaml`. Generated automatically by `config setup` or `config refresh`, or create manually.
+
+[source,yaml]
+----
+subscriptions:
+  t1:                             # subscription alias (used with --subscription flag)
+    subscription_id: "abc123"      # CCV2 subscription ID from the portal
+    last_updated: 2026-03-03T12:00:00Z
+    environments:
+      d1:
+        code: d1
+        name: Development
+        aspects:
+          hcs_platform_backoffice:
+            code: hcs_platform_backoffice
+            name: Backoffice
+            url: https://backoffice.d1.my-project.model-t.cc.commerce.ondemand.com
+            context_path: /hac
+            routes:
+              - api-8477ccd75c-jwxwn
+              - api-8477ccd75c-kzmqp
+          hcs_storefront_web:
+            code: hcs_storefront_web
+            name: Storefront
+            url: https://store.d1.my-project.model-t.cc.commerce.ondemand.com
+      s1:
+        code: s1
+        name: Staging
+        aspects:
+          hcs_platform_backoffice:
+            code: hcs_platform_backoffice
+            name: Backoffice
+            url: https://backoffice.s1.my-project.model-t.cc.commerce.ondemand.com
+----
+
+*Fields:*
+
+|===
+|Field |Description
+
+|`subscriptions.<alias>` |Arbitrary subscription alias, used with `--subscription`
+|`subscription_id` |CCV2 subscription ID as shown in the portal
+|`last_updated` |Timestamp of last `config setup` or `config refresh` run
+|`environments.<code>.code` |Environment code (e.g. `d1`, `s1`, `p1`)
+|`environments.<code>.name` |Human-readable environment name
+|`aspects.<code>.url` |Base URL for the aspect
+|`aspects.<code>.context_path` |Optional URL context path (e.g. `/hac`)
+|`aspects.<code>.routes` |Replica names (used as `ROUTE` cookie to target cluster nodes)
+|===
+
+=== Credentials vault
+
+Credentials are stored *encrypted* in `.config/credentials.enc`.
+
+The vault is AES-256-GCM encrypted, key derived via Argon2id from a master password you choose. You are prompted for the master password when credentials are needed.
+
+File layout: `[4B magic='HACV'][16B salt][12B nonce][AES-256-GCM ciphertext]`
+
+The vault stores per-project/subscription:
+
+* `sap_login` / `sap_password` — SAP IAS credentials for portal authentication
+* `default_hac_login` / `default_hac_password` — HAC credentials used for all environments
+* `environments.<code>.hac_login` / `hac_password` — Per-environment HAC overrides (optional; fallback to default if absent)
+
+== Global Flags
+
+All commands accept the following global flags:
+
+|===
+|Flag |Default |Description
+
+|`-p, --project` |`local` |Project name (as in config YAML)
+|`-s, --subscription` | |Subscription alias
+|`--debug` |false |Dump HTTP responses to stderr
+|===
+
+== Usage
+
+=== Config commands
+
+==== config setup
+
+Interactive wizard. Authenticates against the portal, fetches all environments and service aspects (with replica routes), and saves the full configuration.
+
+[source,bash]
+----
+./hac-helper config setup
+----
+
+==== config refresh
+
+Re-authenticates against the portal, re-fetches all environments and service aspects, and updates the config in place. Updates `last_updated` timestamp.
+
+[source,bash]
+----
+./hac-helper config refresh --project my-project --subscription t1
+----
+
+A staleness warning is printed by HAC commands when `last_updated` is older than 24 hours:
+
+----
+[WARNING] Config for my-project/dev is 36 hours old — consider running: config refresh -p my-project -s t1
+----
+
+=== Auth commands
+
+All `auth` subcommands require `--project` / `-p` and `--subscription` / `-s` flags.
+
+==== auth login
+
+Authenticate against the CCV2 portal. Uses cached session if valid; otherwise runs the full IAS OAuth2 SSO flow.
+
+[source,bash]
+----
+./hac-helper auth login -p my-project -s t1
+----
+
+*Flow:*
+
+1. Checks for a cached session (`.config/sessions/`). If valid, exits immediately.
+2. Prompts for vault master password to load stored credentials.
+3. If credentials not in vault, prompts for SAP email and password interactively.
+4. Executes IAS OAuth2 SSO flow against `portal.commerce.ondemand.com`.
+5. If 2FA (TOTP) is required, prompts for the one-time code.
+6. Saves the session cookie jar for 1 hour.
+
+==== auth logout
+
+Remove the cached session for a project/subscription.
+
+[source,bash]
+----
+./hac-helper auth logout -p my-project -s t1
+----
+
+==== auth status
+
+Show authentication status for all configured projects and subscriptions.
+
+[source,bash]
+----
+./hac-helper auth status
+----
+
+Example output:
+
+----
+PROJECT       SUBSCRIPTION   LOGGED IN   EXPIRES AT
+my-project    t1             yes         2026-03-03T15:04:05Z
+my-project    t2             no          -
+----
+
+=== HAC commands
+
+HAC commands connect directly to the HAC console of a specific environment aspect.
+`--project` defaults to `local`, `--subscription` to `t1`, `--environment` to `d1`.
+Multi-target commands (`loglevel`, `cache`, `uptime`, `groovy`, `config get/set`) default to *all aspects*; single-target commands (`flexsearch`, `enumcodes`, `count`, `cronjobs`) default to the `backoffice` aspect.
+
+==== flexsearch
+
+Execute a FlexibleSearch or direct SQL query via HAC.
+
+[source,bash]
+----
+./hac-helper flexsearch "SELECT {PK},{code} FROM {Product} WHERE {code} = 'mycode'"
+
+# Read query from stdin
+echo "SELECT {PK},{code} FROM {Product}" | ./hac-helper flexsearch
+
+# Direct SQL
+./hac-helper flexsearch --sql "SELECT * FROM products WHERE p_code = 'mycode'"
+
+# CSV output
+./hac-helper flexsearch "SELECT {PK} FROM {Product}" -f csv
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`--aspect` |`backoffice` |Aspect containing HAC
+|`--hac-path` |`/hac` |Path to HAC within the aspect URL
+|`--sql` |false |Execute as direct SQL instead of FlexibleSearch
+|`-n, --max-count` |200 |Maximum number of results
+|`-f, --format` |`table` |Output format: `table` or `csv`
+|`-l, --locale` | |Locale for query execution (e.g. `en`, `de`)
+|`--query-timeout` |0 |Query timeout in milliseconds (0 = disabled)
+|`--cancel-query-timeout` |0 |Cancel query timeout in milliseconds
+|===
+
+==== count
+
+Count items of a given type via FlexibleSearch.
+
+[source,bash]
+----
+./hac-helper count Product
+./hac-helper count Order --where "{status} = 'CREATED'"
+./hac-helper count Product -e s1
+----
+
+Executes: `SELECT count({PK}) FROM {TypeCode} [WHERE condition]`
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`--aspect` |`backoffice` |Aspect containing HAC
+|`--hac-path` |`/hac` |Path to HAC within the aspect URL
+|`--where` | |Optional WHERE clause (without the WHERE keyword)
+|===
+
+==== enumcodes
+
+List all codes for a SAP Commerce enum type.
+
+[source,bash]
+----
+./hac-helper enumcodes OrderStatus
+./hac-helper enumcodes -l de -f csv ArticleApprovalStatus
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`--aspect` |`backoffice` |Aspect containing HAC
+|`-l, --lang` |`en` |Language for localized enum name
+|`-f, --format` |`table` |Output format: `table` or `csv`
+|===
+
+==== groovy
+
+Execute a Groovy script via the HAC console. Accepts a script string, file path, directory, or stdin.
+
+[source,bash]
+----
+./hac-helper groovy 'println spring.getBean("flexibleSearchService")'
+
+# From file
+./hac-helper groovy my-script.groovy
+
+# All files in directory
+./hac-helper groovy ./scripts/
+
+# From stdin
+echo 'println "hello"' | ./hac-helper groovy
+
+# Target a specific node
+./hac-helper groovy --node api-8477ccd75c-jwxwn my-script.groovy
+
+# With database commit
+./hac-helper groovy --commit my-script.groovy
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`-a, --aspect` |`backoffice` |Aspect(s) to target
+|`--all-aspects` |false |Run on all configured aspects
+|`--node` | |Pin to a specific cluster node (ROUTE cookie)
+|`--commit` |false |Commit database changes (default: rollback)
+|===
+
+==== loglevel
+
+Change Log4j logger levels at runtime across all targeted aspects.
+
+[source,bash]
+----
+./hac-helper loglevel de.hybris.platform.order=DEBUG
+./hac-helper loglevel de.hybris.platform.order=DEBUG com.example.MyService=WARN
+./hac-helper loglevel com.example.MyService=INFO -a backoffice
+----
+
+Valid levels: `TRACE` `DEBUG` `INFO` `WARN` `ERROR` `FATAL` `OFF`
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`-a, --aspect` | |Aspect(s) to target (default: all)
+|`--all-aspects` |false |Target all configured aspects
+|===
+
+==== cache clear
+
+Clear region cache on all targeted nodes.
+
+[source,bash]
+----
+./hac-helper cache clear
+./hac-helper cache clear -a backoffice -e s1
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`-a, --aspect` | |Aspect(s) to target (default: all)
+|`--all-aspects` |false |Target all configured aspects
+|===
+
+==== cronjobs
+
+Show CronJob execution statistics. Requires one of `--cronjob`, `--job`, or `--bean`.
+
+[source,bash]
+----
+./hac-helper cronjobs --cronjob myBackofficeJob
+./hac-helper cronjobs --job myJob --like
+./hac-helper cronjobs --bean com.example.myBean --like -f csv
+./hac-helper cronjobs -c myJob -e s1 --max-count 50
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`--aspect` |`backoffice` |Aspect containing HAC
+|`-c, --cronjob` | |Filter by CronJob code (exact match)
+|`-j, --job` | |Filter by Job code (exact match)
+|`-b, --bean` | |Filter by ServiceLayerJob spring bean ID (exact match)
+|`--like` |false |Use `LIKE '%value%'` instead of exact match
+|`--max-count` |200 |Maximum number of results
+|`-f, --format` |`table` |Output format: `table` or `csv`
+|===
+
+Columns returned: `job`, `cron_job`, `pk`, `status`, `result`, `start_time`, `end_time`, `duration_sec`
+
+==== uptime
+
+Show start time and uptime for each targeted node.
+
+[source,bash]
+----
+./hac-helper uptime
+./hac-helper uptime --format timestamp
+./hac-helper uptime -a backoffice -a api -e s1
+----
+
+Example output:
+
+----
+[backoffice] started=2026-03-10T08:42:11Z  uptime=1d 2h 15m 30s
+[api]        started=2026-03-10T08:45:03Z  uptime=1d 2h 12m 38s
+----
+
+*Flags:*
+
+|===
+|Flag |Default |Description
+
+|`-e, --environment` |`d1` |Environment code
+|`-a, --aspect` | |Aspect(s) to target (default: all)
+|`--all-aspects` |false |Target all configured aspects
+|`--format` |`datetime` |Output format: `datetime` (ISO 8601) or `timestamp` (milliseconds)
+|===
+
+=== Credentials commands
+
+==== credentials list
+
+List all projects and subscriptions stored in the vault.
+
+[source,bash]
+----
+./hac-helper credentials list
+----
+
+==== credentials delete
+
+Delete credentials for a specific project/subscription from the vault.
+
+[source,bash]
+----
+./hac-helper credentials delete -p my-project -s t1
+----
+
+== File layout
+
+----
+.config/                             # relative to working directory (or HAC_HELPER_CONFIG_DIR)
+├── projects/
+│   ├── my-project.yaml              # per-project config (environments, aspects, routes)
+│   └── another-project.yaml
+├── credentials.enc                  # AES-256-GCM encrypted SAP + HAC credentials
+└── sessions/
+    ├── my-project_dev.json          # cached session (expires after 3600s)
+    └── my-project_prod.json
+----
+
+== Security
+
+* *credentials.enc* — AES-256-GCM encrypted. Key derived via Argon2id (time=1, mem=64MiB, threads=4). File permissions: `0600`.
+* *sessions/* — plain JSON cookie files. Treat as sensitive. Permissions: `0600`.
+* The HTTP client skips TLS verification for HAC connections (self-signed certificates in CCV2).
+
+== Development
+
+[source,bash]
+----
+# Build
+go build ./...
+go build -o hac-helper .
+
+# Run all tests
+go test ./...
+go test ./... -v
+
+# Run tests for a specific package
+go test ./internal/hac/... -v
+go test ./internal/portal/... -v
+go test ./cmd/... -v
+----
