@@ -114,7 +114,7 @@ func setupCCV2(projectName string) error {
 		return err
 	}
 
-	masterPwd, err := ui.PromptPassword("Vault master password")
+	masterPwd, err := ui.PromptPassword("Vault master password (to store creadationals locally in the encrypted file)")
 	if err != nil {
 		return err
 	}

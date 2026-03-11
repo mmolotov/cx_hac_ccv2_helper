@@ -37,7 +37,7 @@ func (c *Client) ExecuteFlexSearch(req QueryRequest) (*QueryResult, error) {
 
 // ExecuteSQL runs a direct SQL query.
 func (c *Client) ExecuteSQL(req QueryRequest) (*QueryResult, error) {
-	return c.executeQuery("/console/sql/execute", "sqlQuery", req)
+	return c.executeQuery("/console/flexsearch/execute", "sqlQuery", req)
 }
 
 func (c *Client) executeQuery(path, queryParam string, req QueryRequest) (*QueryResult, error) {

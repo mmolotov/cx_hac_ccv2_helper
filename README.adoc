@@ -56,7 +56,7 @@ The fastest way to get started is the interactive setup wizard:
 This will:
 
 1. Prompt for project name, subscription alias, and CCV2 subscription ID
-2. Prompt for vault master password and SAP credentials
+2. Prompt for vault master password and SAP credentials. It is used to store passwords locally in the encrypted file
 3. Authenticate against the portal
 4. Fetch all environments and their service aspects (including replica routes)
 5. Let you confirm/override URLs for each aspect
@@ -75,18 +75,18 @@ Each project is stored in `.config/projects/{project}.yaml`. Generated automatic
 [source,yaml]
 ----
 subscriptions:
-  dev:                             # subscription alias (used with --subscription flag)
+  t1:                             # subscription alias (used with --subscription flag)
     subscription_id: "abc123"      # CCV2 subscription ID from the portal
     last_updated: 2026-03-03T12:00:00Z
     environments:
-      d0:
-        code: d0
-        name: Development 0
+      d1:
+        code: d1
+        name: Development
         aspects:
           hcs_platform_backoffice:
             code: hcs_platform_backoffice
             name: Backoffice
-            url: https://backoffice.d0.my-project.model-t.cc.commerce.ondemand.com
+            url: https://backoffice.d1.my-project.model-t.cc.commerce.ondemand.com
             context_path: /hac
             routes:
               - api-8477ccd75c-jwxwn
@@ -94,15 +94,15 @@ subscriptions:
           hcs_storefront_web:
             code: hcs_storefront_web
             name: Storefront
-            url: https://store.d0.my-project.model-t.cc.commerce.ondemand.com
-      s0:
-        code: s0
-        name: Staging 0
+            url: https://store.d1.my-project.model-t.cc.commerce.ondemand.com
+      s1:
+        code: s1
+        name: Staging
         aspects:
           hcs_platform_backoffice:
             code: hcs_platform_backoffice
             name: Backoffice
-            url: https://backoffice.s0.my-project.model-t.cc.commerce.ondemand.com
+            url: https://backoffice.s1.my-project.model-t.cc.commerce.ondemand.com
 ----
 
 *Fields:*
@@ -113,7 +113,7 @@ subscriptions:
 |`subscriptions.<alias>` |Arbitrary subscription alias, used with `--subscription`
 |`subscription_id` |CCV2 subscription ID as shown in the portal
 |`last_updated` |Timestamp of last `config setup` or `config refresh` run
-|`environments.<code>.code` |Environment code (e.g. `d0`, `s0`, `p0`)
+|`environments.<code>.code` |Environment code (e.g. `d1`, `s1`, `p1`)
 |`environments.<code>.name` |Human-readable environment name
 |`aspects.<code>.url` |Base URL for the aspect
 |`aspects.<code>.context_path` |Optional URL context path (e.g. `/hac`)
@@ -165,13 +165,13 @@ Re-authenticates against the portal, re-fetches all environments and service asp
 
 [source,bash]
 ----
-./hac-helper config refresh --project my-project --subscription dev
+./hac-helper config refresh --project my-project --subscription t1
 ----
 
 A staleness warning is printed by HAC commands when `last_updated` is older than 24 hours:
 
 ----
-[WARNING] Config for my-project/dev is 36 hours old — consider running: config refresh -p my-project -s dev
+[WARNING] Config for my-project/dev is 36 hours old — consider running: config refresh -p my-project -s t1
 ----
 
 === Auth commands
@@ -184,7 +184,7 @@ Authenticate against the CCV2 portal. Uses cached session if valid; otherwise ru
 
 [source,bash]
 ----
-./hac-helper auth login -p my-project -s dev
+./hac-helper auth login -p my-project -s t1
 ----
 
 *Flow:*
@@ -202,7 +202,7 @@ Remove the cached session for a project/subscription.
 
 [source,bash]
 ----
-./hac-helper auth logout -p my-project -s dev
+./hac-helper auth logout -p my-project -s t1
 ----
 
 ==== auth status
@@ -218,8 +218,8 @@ Example output:
 
 ----
 PROJECT       SUBSCRIPTION   LOGGED IN   EXPIRES AT
-my-project    dev            yes         2026-03-03T15:04:05Z
-my-project    prod           no          -
+my-project    t1             yes         2026-03-03T15:04:05Z
+my-project    t2             no          -
 ----
 
 === HAC commands
@@ -270,7 +270,7 @@ Count items of a given type via FlexibleSearch.
 ----
 ./hac-helper count Product
 ./hac-helper count Order --where "{status} = 'CREATED'"
-./hac-helper count Product -e s0
+./hac-helper count Product -e s1
 ----
 
 Executes: `SELECT count({PK}) FROM {TypeCode} [WHERE condition]`
@@ -373,7 +373,7 @@ Clear region cache on all targeted nodes.
 [source,bash]
 ----
 ./hac-helper cache clear
-./hac-helper cache clear -a backoffice -e s0
+./hac-helper cache clear -a backoffice -e s1
 ----
 
 *Flags:*
@@ -395,7 +395,7 @@ Show CronJob execution statistics. Requires one of `--cronjob`, `--job`, or `--b
 ./hac-helper cronjobs --cronjob myBackofficeJob
 ./hac-helper cronjobs --job myJob --like
 ./hac-helper cronjobs --bean com.example.myBean --like -f csv
-./hac-helper cronjobs -c myJob -e s0 --max-count 50
+./hac-helper cronjobs -c myJob -e s1 --max-count 50
 ----
 
 *Flags:*
@@ -423,7 +423,7 @@ Show start time and uptime for each targeted node.
 ----
 ./hac-helper uptime
 ./hac-helper uptime --format timestamp
-./hac-helper uptime -a backoffice -a api -e s0
+./hac-helper uptime -a backoffice -a api -e s1
 ----
 
 Example output:
@@ -461,7 +461,7 @@ Delete credentials for a specific project/subscription from the vault.
 
 [source,bash]
 ----
-./hac-helper credentials delete -p my-project -s dev
+./hac-helper credentials delete -p my-project -s t1
 ----
 
 == File layout
