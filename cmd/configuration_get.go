@@ -46,7 +46,7 @@ func runConfigurationGet(_ *cobra.Command, args []string) error {
 
 func execConfigurationGet(client *hac.Client, keys []string) error {
 	for _, key := range keys {
-		script := fmt.Sprintf("configurationService.getConfiguration().getString('%s')", key)
+		script := fmt.Sprintf("configurationService.getConfiguration().getString(%s)", groovyQuote(key))
 		spinner, _ := pterm.DefaultSpinner.Start(fmt.Sprintf("Reading %s...", key))
 		result, err := client.ExecuteScript(hac.ScriptRequest{Script: script})
 		if err != nil {

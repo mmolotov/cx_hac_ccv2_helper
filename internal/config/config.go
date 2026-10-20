@@ -11,19 +11,47 @@ import (
 )
 
 const (
-	ConfigDir      = ".config"
-	projectsSubDir = "projects"
+	// LegacyConfigDir is the old working-directory-relative config location.
+	// It is still used when present, so existing setups keep working.
+	LegacyConfigDir = ".config"
+	appDirName      = "hac-helper"
+	projectsSubDir  = "projects"
 )
 
 // ConfigDirPath returns the path to the hac-helper config directory.
-// Defaults to the relative path ConfigDir (.config) so that config
-// lives next to the working directory where the binary is run.
-// Set HAC_HELPER_CONFIG_DIR to override (used in tests).
+// Resolution order:
+//  1. HAC_HELPER_CONFIG_DIR (used in tests and for custom setups)
+//  2. ./.config in the working directory, if it already holds hac-helper data (legacy)
+//  3. ~/.config/hac-helper
 func ConfigDirPath() (string, error) {
 	if override := os.Getenv("HAC_HELPER_CONFIG_DIR"); override != "" {
 		return override, nil
 	}
-	return ConfigDir, nil
+	if IsLegacyConfigDir() {
+		return LegacyConfigDir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("resolving home dir: %w", err)
+	}
+	return filepath.Join(home, ".config", appDirName), nil
+}
+
+// IsLegacyConfigDir reports whether hac-helper data lives in ./.config
+// (and no HAC_HELPER_CONFIG_DIR override is set).
+func IsLegacyConfigDir() bool {
+	if os.Getenv("HAC_HELPER_CONFIG_DIR") != "" {
+		return false
+	}
+	for _, p := range []string{
+		filepath.Join(LegacyConfigDir, projectsSubDir),
+		filepath.Join(LegacyConfigDir, "credentials.enc"),
+	} {
+		if _, err := os.Stat(p); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // ProjectsDir returns the directory that contains per-project YAML files.

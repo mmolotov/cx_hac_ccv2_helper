@@ -4,8 +4,13 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mmolotov/cx_hac_ccv2_helper/internal/config"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
+
+// version is set at build time via -ldflags "-X github.com/mmolotov/cx_hac_ccv2_helper/cmd.version=...".
+var version = "dev"
 
 var (
 	flagProject      string
@@ -19,6 +24,15 @@ var rootCmd = &cobra.Command{
 	Short: "CCV2 HAC helper — SAML auth and environment management",
 	Long: `hac-helper authenticates against the SAP Commerce Cloud portal
 using SAML 2.0 SSO and provides CLI access to environment management APIs.`,
+	Version: version,
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		if config.IsLegacyConfigDir() {
+			home, _ := os.UserHomeDir()
+			pterm.Warning.WithWriter(os.Stderr).Printfln("Using legacy config dir ./%s (contains credentials and session cookies). "+
+				"Move it out of the working directory: mkdir -p %s/.config && mv %s %s/.config/hac-helper",
+				config.LegacyConfigDir, home, config.LegacyConfigDir, home)
+		}
+	},
 }
 
 // Execute is the entry point called from main.go.

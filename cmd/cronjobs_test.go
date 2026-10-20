@@ -19,7 +19,7 @@ func TestBuildCronJobsCondition(t *testing.T) {
 			field: "{j.code}",
 			value: "myJob",
 			like:  true,
-			want:  "{j.code} LIKE '%myJob%'",
+			want:  "LOWER({j.code}) LIKE LOWER('%myJob%')",
 		},
 		{
 			field: "{sj.springId}",
@@ -31,7 +31,19 @@ func TestBuildCronJobsCondition(t *testing.T) {
 			field: "{sj.springId}",
 			value: "myBean",
 			like:  true,
-			want:  "{sj.springId} LIKE '%myBean%'",
+			want:  "LOWER({sj.springId}) LIKE LOWER('%myBean%')",
+		},
+		{
+			field: "{cj.code}",
+			value: "o'brien",
+			like:  false,
+			want:  "{cj.code} = 'o''brien'",
+		},
+		{
+			field: "{j.code}",
+			value: "x' OR '1'='1",
+			like:  true,
+			want:  "LOWER({j.code}) LIKE LOWER('%x'' OR ''1''=''1%')",
 		},
 	}
 	for _, tc := range cases {
