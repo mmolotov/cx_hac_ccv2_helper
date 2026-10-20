@@ -28,8 +28,8 @@ var (
 var logLevelCmd = &cobra.Command{
 	Use:   "loglevel <logger>=<LEVEL> [<logger>=<LEVEL> ...]",
 	Short: "Change Log4j logger levels via HAC",
-	Example: `  hac-helper loglevel de.hybris.platform.order=DEBUG
-  hac-helper loglevel de.hybris.platform.order=DEBUG com.example.MyService=WARN -a backoffice`,
+	Example: `  hac loglevel de.hybris.platform.order=DEBUG
+  hac loglevel de.hybris.platform.order=DEBUG com.example.MyService=WARN -a backoffice`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runLogLevel,
 }

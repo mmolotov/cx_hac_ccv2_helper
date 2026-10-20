@@ -1,4 +1,4 @@
-BINARY        := bin/hac-helper
+BINARY        := bin/hac
 PKG           := github.com/mmolotov/cx_hac_ccv2_helper
 VERSION       ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS       := -s -w -X $(PKG)/cmd.version=$(VERSION)

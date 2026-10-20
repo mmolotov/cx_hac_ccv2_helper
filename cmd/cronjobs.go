@@ -34,9 +34,9 @@ const cronJobsQueryTemplate = `SELECT {j.code} as job, {cj.code} as cron_job, {c
 var cronJobsCmd = &cobra.Command{
 	Use:   "cronjobs",
 	Short: "Show CronJob execution statistics via FlexibleSearch",
-	Example: `  hac-helper cronjobs --cronjob myBackofficeJob
-  hac-helper cronjobs --job myJob --like
-  hac-helper cronjobs --bean myBean -f csv`,
+	Example: `  hac cronjobs --cronjob myBackofficeJob
+  hac cronjobs --job myJob --like
+  hac cronjobs --bean myBean -f csv`,
 	RunE: runCronJobs,
 }
 

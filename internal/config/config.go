@@ -14,15 +14,15 @@ const (
 	// LegacyConfigDir is the old working-directory-relative config location.
 	// It is still used when present, so existing setups keep working.
 	LegacyConfigDir = ".config"
-	appDirName      = "hac-helper"
+	appDirName      = "hac"
 	projectsSubDir  = "projects"
 )
 
-// ConfigDirPath returns the path to the hac-helper config directory.
+// ConfigDirPath returns the path to the hac config directory.
 // Resolution order:
 //  1. HAC_HELPER_CONFIG_DIR (used in tests and for custom setups)
-//  2. ./.config in the working directory, if it already holds hac-helper data (legacy)
-//  3. ~/.config/hac-helper
+//  2. ./.config in the working directory, if it already holds hac data (legacy)
+//  3. ~/.config/hac
 func ConfigDirPath() (string, error) {
 	if override := os.Getenv("HAC_HELPER_CONFIG_DIR"); override != "" {
 		return override, nil
@@ -37,7 +37,7 @@ func ConfigDirPath() (string, error) {
 	return filepath.Join(home, ".config", appDirName), nil
 }
 
-// IsLegacyConfigDir reports whether hac-helper data lives in ./.config
+// IsLegacyConfigDir reports whether hac data lives in ./.config
 // (and no HAC_HELPER_CONFIG_DIR override is set).
 func IsLegacyConfigDir() bool {
 	if os.Getenv("HAC_HELPER_CONFIG_DIR") != "" {

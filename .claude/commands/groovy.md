@@ -17,7 +17,7 @@ Rules:
 Provide:
 1. The Groovy script
 2. A brief explanation of what it does and any side effects
-3. The command: `./bin/hac-helper -p <project> -e <env> groovy <file.groovy> [-a <aspect>] [--commit]`
+3. The command: `./bin/hac -p <project> -e <env> groovy <file.groovy> [-a <aspect>] [--commit]`
 4. A clear warning if the script modifies data or calls external systems
 
 Running it:

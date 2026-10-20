@@ -12,12 +12,12 @@ Rules:
 - Escape single quotes in literals by doubling them: 'o''brien'
 - Prefer ORDER BY on indexed fields; always keep the result bounded (use --max-count)
 - For raw SQL use the --sql flag (table names like `products`, columns like `p_code`)
-- For a plain count prefer `hac-helper count <Type> --where "..."`
+- For a plain count prefer `hac count <Type> --where "..."`
 
 Provide:
 1. The FlexibleSearch query
 2. A brief explanation of what it does
-3. The command: `./bin/hac-helper -p <project> -e <env> flexsearch "<query>" [-f csv] [--max-count N]`
+3. The command: `./bin/hac -p <project> -e <env> flexsearch "<query>" [-f csv] [--max-count N]`
 
-If the user gave a project/environment (or asked to run it), build with `make build` if `bin/hac-helper` is missing,
+If the user gave a project/environment (or asked to run it), build with `make build` if `bin/hac` is missing,
 run the query and summarise the result. FlexibleSearch is read-only, so running it needs no extra confirmation.

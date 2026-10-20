@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-make build      # bin/hac-helper with version from git describe
+make build      # bin/hac with version from git describe
 make test       # go test ./...
 make check      # vet + golangci-lint (.golangci.yml) + tests — run before finishing a change
 make cover      # coverage summary
@@ -18,7 +18,7 @@ runs vet, `go test -race` and golangci-lint on push/PR.
 
 ## Safety
 
-- **Secrets:** config lives in `~/.config/hac-helper/` (or `HAC_HELPER_CONFIG_DIR`). A legacy `./.config/`
+- **Secrets:** config lives in `~/.config/hac/` (or `HAC_HELPER_CONFIG_DIR`). A legacy `./.config/`
   in the working directory is still used if present. It holds `credentials.enc` and `sessions/*.json`
   (live portal cookies). Never read, print or copy these; access is denied in `.claude/settings.json`.
 - **State-changing commands:** `groovy --commit`, `config set`, `loglevel`, `cache clear`, `auth`,
@@ -66,7 +66,7 @@ internal/
   config/
     models.go         — Config, ProjectConfig, Subscription, Environment, Aspect,
                         CredentialsStore, ProjectCreds, SubCreds, EnvCreds
-    config.go         — ConfigDirPath (env override → legacy ./.config → ~/.config/hac-helper),
+    config.go         — ConfigDirPath (env override → legacy ./.config → ~/.config/hac),
                         per-project YAML: LoadProject, SaveProject, ListProjects, Load
     aspects.go        — AspectAliases, RelevantAspects, ServiceToEndpoint,
                         ResolveAspectCodes, ResolveHACCreds, ResolveAspects

@@ -4,7 +4,7 @@ import "github.com/spf13/cobra"
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage hac-helper configuration",
+	Short: "Manage hac configuration",
 }
 
 func init() {

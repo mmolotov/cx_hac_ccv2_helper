@@ -1,4 +1,4 @@
-= hac-helper
+= hac
 
 CLI tool for authenticating against the *SAP Commerce Cloud v2 (CCV2)* portal and running HAC operations. Uses IAS OAuth2 SSO via browser emulation — no OAuth tokens or API keys required.
 
@@ -41,8 +41,8 @@ MIT License. See link:LICENSE[LICENSE] for details.
 ----
 git clone https://github.com/mmolotov/cx_hac_ccv2_helper
 cd cx_hac_ccv2_helper
-make build            # -> bin/hac-helper (or: go build -o hac-helper .)
-bin/hac-helper --version
+make build            # -> bin/hac (or: go build -o hac .)
+bin/hac --version
 ----
 
 == Quick Start
@@ -51,7 +51,7 @@ The fastest way to get started is the interactive setup wizard:
 
 [source,bash]
 ----
-./hac-helper config setup
+./hac config setup
 ----
 
 This will:
@@ -66,12 +66,12 @@ This will:
 
 == Configuration
 
-Config lives in `~/.config/hac-helper/`.
+Config lives in `~/.config/hac/`.
 Override the location with the `HAC_HELPER_CONFIG_DIR` environment variable.
 
 NOTE: Older versions stored config in `.config/` relative to the working directory. If that directory
 exists it is still used (with a warning). Migrate with
-`mkdir -p ~/.config && mv .config ~/.config/hac-helper`.
+`mkdir -p ~/.config && mv .config ~/.config/hac`.
 
 === Per-project config files
 
@@ -127,7 +127,7 @@ subscriptions:
 
 === Credentials vault
 
-Credentials are stored *encrypted* in `~/.config/hac-helper/credentials.enc`.
+Credentials are stored *encrypted* in `~/.config/hac/credentials.enc`.
 
 The vault is AES-256-GCM encrypted, key derived via Argon2id from a master password you choose. You are prompted for the master password when credentials are needed.
 
@@ -161,7 +161,7 @@ Interactive wizard. Authenticates against the portal, fetches all environments a
 
 [source,bash]
 ----
-./hac-helper config setup
+./hac config setup
 ----
 
 ==== config refresh
@@ -170,7 +170,7 @@ Re-authenticates against the portal, re-fetches all environments and service asp
 
 [source,bash]
 ----
-./hac-helper config refresh --project my-project --subscription t1
+./hac config refresh --project my-project --subscription t1
 ----
 
 A staleness warning is printed by HAC commands when `last_updated` is older than 24 hours:
@@ -189,12 +189,12 @@ Authenticate against the CCV2 portal. Uses cached session if valid; otherwise ru
 
 [source,bash]
 ----
-./hac-helper auth login -p my-project -s t1
+./hac auth login -p my-project -s t1
 ----
 
 *Flow:*
 
-1. Checks for a cached session (`~/.config/hac-helper/sessions/`). If valid, exits immediately.
+1. Checks for a cached session (`~/.config/hac/sessions/`). If valid, exits immediately.
 2. Prompts for vault master password to load stored credentials.
 3. If credentials not in vault, prompts for SAP email and password interactively.
 4. Executes IAS OAuth2 SSO flow against `portal.commerce.ondemand.com`.
@@ -207,7 +207,7 @@ Remove the cached session for a project/subscription.
 
 [source,bash]
 ----
-./hac-helper auth logout -p my-project -s t1
+./hac auth logout -p my-project -s t1
 ----
 
 ==== auth status
@@ -216,7 +216,7 @@ Show authentication status for all configured projects and subscriptions.
 
 [source,bash]
 ----
-./hac-helper auth status
+./hac auth status
 ----
 
 Example output:
@@ -239,16 +239,16 @@ Execute a FlexibleSearch or direct SQL query via HAC.
 
 [source,bash]
 ----
-./hac-helper flexsearch "SELECT {PK},{code} FROM {Product} WHERE {code} = 'mycode'"
+./hac flexsearch "SELECT {PK},{code} FROM {Product} WHERE {code} = 'mycode'"
 
 # Read query from stdin
-echo "SELECT {PK},{code} FROM {Product}" | ./hac-helper flexsearch
+echo "SELECT {PK},{code} FROM {Product}" | ./hac flexsearch
 
 # Direct SQL
-./hac-helper flexsearch --sql "SELECT * FROM products WHERE p_code = 'mycode'"
+./hac flexsearch --sql "SELECT * FROM products WHERE p_code = 'mycode'"
 
 # CSV output
-./hac-helper flexsearch "SELECT {PK} FROM {Product}" -f csv
+./hac flexsearch "SELECT {PK} FROM {Product}" -f csv
 ----
 
 *Flags:*
@@ -273,9 +273,9 @@ Count items of a given type via FlexibleSearch.
 
 [source,bash]
 ----
-./hac-helper count Product
-./hac-helper count Order --where "{status} = 'CREATED'"
-./hac-helper count Product -e s1
+./hac count Product
+./hac count Order --where "{status} = 'CREATED'"
+./hac count Product -e s1
 ----
 
 Executes: `SELECT count({PK}) FROM {TypeCode} [WHERE condition]`
@@ -297,8 +297,8 @@ List all codes for a SAP Commerce enum type.
 
 [source,bash]
 ----
-./hac-helper enumcodes OrderStatus
-./hac-helper enumcodes -l de -f csv ArticleApprovalStatus
+./hac enumcodes OrderStatus
+./hac enumcodes -l de -f csv ArticleApprovalStatus
 ----
 
 *Flags:*
@@ -318,22 +318,22 @@ Execute a Groovy script via the HAC console. Accepts a script string, file path,
 
 [source,bash]
 ----
-./hac-helper groovy 'println spring.getBean("flexibleSearchService")'
+./hac groovy 'println spring.getBean("flexibleSearchService")'
 
 # From file
-./hac-helper groovy my-script.groovy
+./hac groovy my-script.groovy
 
 # All files in directory
-./hac-helper groovy ./scripts/
+./hac groovy ./scripts/
 
 # From stdin
-echo 'println "hello"' | ./hac-helper groovy
+echo 'println "hello"' | ./hac groovy
 
 # Target a specific node
-./hac-helper groovy --node api-8477ccd75c-jwxwn my-script.groovy
+./hac groovy --node api-8477ccd75c-jwxwn my-script.groovy
 
 # With database commit
-./hac-helper groovy --commit my-script.groovy
+./hac groovy --commit my-script.groovy
 ----
 
 *Flags:*
@@ -354,9 +354,9 @@ Change Log4j logger levels at runtime across all targeted aspects.
 
 [source,bash]
 ----
-./hac-helper loglevel de.hybris.platform.order=DEBUG
-./hac-helper loglevel de.hybris.platform.order=DEBUG com.example.MyService=WARN
-./hac-helper loglevel com.example.MyService=INFO -a backoffice
+./hac loglevel de.hybris.platform.order=DEBUG
+./hac loglevel de.hybris.platform.order=DEBUG com.example.MyService=WARN
+./hac loglevel com.example.MyService=INFO -a backoffice
 ----
 
 Valid levels: `TRACE` `DEBUG` `INFO` `WARN` `ERROR` `FATAL` `OFF`
@@ -377,8 +377,8 @@ Clear region cache on all targeted nodes.
 
 [source,bash]
 ----
-./hac-helper cache clear
-./hac-helper cache clear -a backoffice -e s1
+./hac cache clear
+./hac cache clear -a backoffice -e s1
 ----
 
 *Flags:*
@@ -397,10 +397,10 @@ Show CronJob execution statistics. Requires one of `--cronjob`, `--job`, or `--b
 
 [source,bash]
 ----
-./hac-helper cronjobs --cronjob myBackofficeJob
-./hac-helper cronjobs --job myJob --like
-./hac-helper cronjobs --bean com.example.myBean --like -f csv
-./hac-helper cronjobs -c myJob -e s1 --max-count 50
+./hac cronjobs --cronjob myBackofficeJob
+./hac cronjobs --job myJob --like
+./hac cronjobs --bean com.example.myBean --like -f csv
+./hac cronjobs -c myJob -e s1 --max-count 50
 ----
 
 *Flags:*
@@ -426,9 +426,9 @@ Show start time and uptime for each targeted node.
 
 [source,bash]
 ----
-./hac-helper uptime
-./hac-helper uptime --format timestamp
-./hac-helper uptime -a backoffice -a api -e s1
+./hac uptime
+./hac uptime --format timestamp
+./hac uptime -a backoffice -a api -e s1
 ----
 
 Example output:
@@ -457,7 +457,7 @@ List all projects and subscriptions stored in the vault.
 
 [source,bash]
 ----
-./hac-helper credentials list
+./hac credentials list
 ----
 
 ==== credentials edit
@@ -473,8 +473,8 @@ At password prompts press Enter to keep the current password.
 
 [source,bash]
 ----
-./hac-helper credentials edit my-project              # pick what to edit from a menu
-./hac-helper credentials edit my-project -s t1 -e p1  # straight to HAC creds of p1
+./hac credentials edit my-project              # pick what to edit from a menu
+./hac credentials edit my-project -s t1 -e p1  # straight to HAC creds of p1
 ----
 
 ==== credentials delete
@@ -483,13 +483,13 @@ Delete all credentials of a project from the vault.
 
 [source,bash]
 ----
-./hac-helper credentials delete my-project
+./hac credentials delete my-project
 ----
 
 == File layout
 
 ----
-~/.config/hac-helper/                # or HAC_HELPER_CONFIG_DIR
+~/.config/hac/                       # or HAC_HELPER_CONFIG_DIR
 ├── projects/
 │   ├── my-project.yaml              # per-project config (environments, aspects, routes)
 │   └── another-project.yaml
@@ -511,7 +511,7 @@ Delete all credentials of a project from the vault.
 
 [source,bash]
 ----
-make build       # bin/hac-helper, version from git describe
+make build       # bin/hac, version from git describe
 make test        # go test ./...
 make race        # go test -race ./...
 make lint        # golangci-lint (config: .golangci.yml)
