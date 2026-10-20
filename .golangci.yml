@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - misspell
+    - bodyclose
+  settings:
+    gosec:
+      excludes:
+        - G104 # duplicate of errcheck; std-error-handling preset covers Close/Discard
+        - G304 # file paths come from our own config dir
+  exclusions:
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters: [gosec, errcheck]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

@@ -1,0 +1,66 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(go vet:*)",
+      "Bash(go mod:*)",
+      "Bash(go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@*)",
+      "Bash(gofmt:*)",
+      "Bash(make build)",
+      "Bash(make test)",
+      "Bash(make race)",
+      "Bash(make cover)",
+      "Bash(make vet)",
+      "Bash(make lint)",
+      "Bash(make check)",
+      "Bash(./bin/hac-helper flexsearch:*)",
+      "Bash(./bin/hac-helper count:*)",
+      "Bash(./bin/hac-helper enumcodes:*)",
+      "Bash(./bin/hac-helper cronjobs:*)",
+      "Bash(./bin/hac-helper uptime:*)",
+      "Bash(./bin/hac-helper config get:*)",
+      "Bash(./bin/hac-helper auth status:*)",
+      "Bash(./bin/hac-helper --help)",
+      "Bash(./bin/hac-helper --version)"
+    ],
+    "ask": [
+      "Bash(./bin/hac-helper groovy:*)",
+      "Bash(./bin/hac-helper config set:*)",
+      "Bash(./bin/hac-helper loglevel:*)",
+      "Bash(./bin/hac-helper cache:*)",
+      "Bash(./bin/hac-helper credentials:*)",
+      "Bash(./bin/hac-helper auth:*)",
+      "Bash(./bin/hac-helper config setup:*)",
+      "Bash(./bin/hac-helper config refresh:*)"
+    ],
+    "deny": [
+      "Read(./.config/**)",
+      "Read(~/.config/hac-helper/**)",
+      "Edit(./.config/**)",
+      "Edit(~/.config/hac-helper/**)",
+      "Bash(cat .config/*)",
+      "Bash(cat ./.config/*)",
+      "Bash(cat ~/.config/hac-helper/*)",
+      "Bash(*credentials.enc*)",
+      "Bash(*sessions/*.json*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gofmt.sh", "timeout": 60 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/go-test.sh", "timeout": 300 }
+        ]
+      }
+    ]
+  }
+}

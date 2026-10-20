@@ -43,6 +43,9 @@ func buildCountQuery(typeCode, where string) string {
 
 func runCount(_ *cobra.Command, args []string) error {
 	typeCode := args[0]
+	if err := validateTypeCode(typeCode); err != nil {
+		return err
+	}
 	query := buildCountQuery(typeCode, countWhere)
 
 	project, subscription, err := resolveProjectSub(defaultSubscription)

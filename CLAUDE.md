@@ -5,14 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Build
-go build ./...
-go build -o hac-helper .
-
-# Run all tests
-go test ./...
-go test ./... -v
+make build      # bin/hac-helper with version from git describe
+make test       # go test ./...
+make check      # vet + golangci-lint (.golangci.yml) + tests — run before finishing a change
+make cover      # coverage summary
+make completion # regenerate completion.sh (zsh)
 ```
+
+Claude Code hooks (`.claude/settings.json`): every edited `.go` file is gofmt'ed and its package vetted;
+on Stop, `go test ./...` runs if Go files changed and blocks on failure. CI (`.github/workflows/ci.yml`)
+runs vet, `go test -race` and golangci-lint on push/PR.
+
+## Safety
+
+- **Secrets:** config lives in `~/.config/hac-helper/` (or `HAC_HELPER_CONFIG_DIR`). A legacy `./.config/`
+  in the working directory is still used if present. It holds `credentials.enc` and `sessions/*.json`
+  (live portal cookies). Never read, print or copy these; access is denied in `.claude/settings.json`.
+- **State-changing commands:** `groovy --commit`, `config set`, `loglevel`, `cache clear`, `auth`,
+  `config setup/refresh` hit real environments — ask before running. Environments `p*` are production.
+  Read-only commands (`flexsearch`, `count`, `enumcodes`, `cronjobs`, `uptime`, `config get`) are pre-allowed.
+- **Injection:** never `Sprintf` user input into FlexibleSearch/Groovy. Use `cmd/escape.go`:
+  `escapeSQLString`, `groovyQuote`, `validateTypeCode`, `validateLocale`.
 
 ## Architecture
 
@@ -46,12 +59,14 @@ cmd/
                           buildCronJobsCondition(); wraps FlexSearch
   uptime.go           — uptime [--format datetime|timestamp]; Groovy: getRuntimeMXBean().getStartTime();
                           formatDuration()
+  escape.go           — escapeSQLString, groovyQuote, validateTypeCode, validateLocale
 
 internal/
   config/
     models.go         — Config, ProjectConfig, Subscription, Environment, Aspect,
                         CredentialsStore, ProjectCreds, SubCreds, EnvCreds
-    config.go         — Per-project YAML: LoadProject, SaveProject, ListProjects, Load
+    config.go         — ConfigDirPath (env override → legacy ./.config → ~/.config/hac-helper),
+                        per-project YAML: LoadProject, SaveProject, ListProjects, Load
     aspects.go        — AspectAliases, RelevantAspects, ServiceToEndpoint,
                         ResolveAspectCodes, ResolveHACCreds, ResolveAspects
     vault.go          — AES-256-GCM + Argon2id credentials.enc
@@ -67,7 +82,7 @@ internal/
     client.go         — PortalClient: http.Client + cookiejar + TLS skip verify
     auth.go           — IAS OAuth2 SSO flow; goquery HTML parsing
     api.go            — GetEnvironments, GetEnvironment, GetServices; ErrSessionExpired
-    session.go        — SessionCache load/save at .config/sessions/{project}_{subscription}.json
+    session.go        — SessionCache load/save at <configDir>/sessions/{project}_{subscription}.json
   ui/
     prompt.go         — PromptPassword, PromptOTP, PromptText, PromptTextDefault,
                         PromptConfirm, PromptSelect
@@ -130,7 +145,7 @@ Key derivation: Argon2id(masterPassword, salt), time=1, mem=64MiB, threads=4, ke
 | Operation | Method | Endpoint | Body |
 |-----------|--------|----------|------|
 | FlexSearch | POST | `/console/flexsearch/execute` | form: `flexibleSearchQuery` |
-| SQL | POST | `/console/sql/execute` | form: `sqlQuery` |
+| SQL | POST | `/console/flexsearch/execute` | form: `sqlQuery` |
 | Groovy | POST | `/console/scripting/execute` | form: `script`, `scriptType=groovy` |
 | Config store | POST | `/platform/configstore` | form: `key`, `val` |
 | Log level | POST | `/platform/log4j/changeLevel` | form: `loggerName`, `levelName` |
@@ -164,6 +179,9 @@ All POST requests include `_csrf` in form body (where applicable) + `X-CSRF-TOKE
 3. Call `runOnHAC(HACRunOpts{...}, fn)` for multi-target or `newHACClient(...)` for single-target
 4. Add the HAC method to `internal/hac/` (follow pattern of `configstore.go` or `loglevel.go`)
 5. Add tests: pure functions in `cmd/`, HTTP handler tests in `internal/hac/` using `newTestClient`
+6. Update the tables in this file and `README.adoc`; run `make check`
+
+The `/new-hac-command` slash command walks through this checklist.
 
 ### Adding New Portal API Calls
 

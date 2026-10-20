@@ -29,7 +29,7 @@ const cronJobsQueryTemplate = `SELECT {j.code} as job, {cj.code} as cron_job, {c
 	` LEFT JOIN CronJobStatus as status ON {cj.status}={status.pk}` +
 	` LEFT JOIN CronJobResult as result ON {cj.result}={result.pk}}` +
 	` WHERE %s` +
-	` ORDER BY {cj.creationtime} DESC, {cj.code}`
+	` ORDER BY {cj.startTime} DESC, {cj.code}`
 
 var cronJobsCmd = &cobra.Command{
 	Use:   "cronjobs",
@@ -55,8 +55,9 @@ func init() {
 }
 
 func buildCronJobsCondition(field, value string, like bool) string {
+	value = escapeSQLString(value)
 	if like {
-		return fmt.Sprintf("%s LIKE '%%%s%%'", field, value)
+		return fmt.Sprintf("LOWER(%s) LIKE LOWER('%%%s%%')", field, value)
 	}
 	return fmt.Sprintf("%s = '%s'", field, value)
 }

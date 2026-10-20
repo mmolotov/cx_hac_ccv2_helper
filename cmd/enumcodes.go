@@ -48,6 +48,12 @@ func runEnumCodes(_ *cobra.Command, args []string) error {
 	}
 
 	typeCode := args[0]
+	if err := validateTypeCode(typeCode); err != nil {
+		return err
+	}
+	if err := validateLocale(enumLang); err != nil {
+		return err
+	}
 	query := fmt.Sprintf(
 		"SELECT {CODE}, {NAME[%s]:o}, {PK} FROM {%s} ORDER BY {CODE}",
 		enumLang, typeCode,

@@ -79,6 +79,7 @@ func ResolveAspects(env Environment, inputs []string, allAspects bool) ([]Aspect
 		found := false
 		for _, code := range ResolveAspectCodes(input) {
 			if seen[code] {
+				found = true // already selected via another alias or a duplicate input
 				continue
 			}
 			a, ok := env.Aspects[code]

@@ -41,7 +41,8 @@ MIT License. See link:LICENSE[LICENSE] for details.
 ----
 git clone https://github.com/mmolotov/cx_hac_ccv2_helper
 cd cx_hac_ccv2_helper
-go build -o hac-helper .
+make build            # -> bin/hac-helper (or: go build -o hac-helper .)
+bin/hac-helper --version
 ----
 
 == Quick Start
@@ -65,8 +66,12 @@ This will:
 
 == Configuration
 
-Config lives in `.config/` relative to the working directory (where the binary is run).
+Config lives in `~/.config/hac-helper/`.
 Override the location with the `HAC_HELPER_CONFIG_DIR` environment variable.
+
+NOTE: Older versions stored config in `.config/` relative to the working directory. If that directory
+exists it is still used (with a warning). Migrate with
+`mkdir -p ~/.config && mv .config ~/.config/hac-helper`.
 
 === Per-project config files
 
@@ -189,7 +194,7 @@ Authenticate against the CCV2 portal. Uses cached session if valid; otherwise ru
 
 *Flow:*
 
-1. Checks for a cached session (`.config/sessions/`). If valid, exits immediately.
+1. Checks for a cached session (`~/.config/hac-helper/sessions/`). If valid, exits immediately.
 2. Prompts for vault master password to load stored credentials.
 3. If credentials not in vault, prompts for SAP email and password interactively.
 4. Executes IAS OAuth2 SSO flow against `portal.commerce.ondemand.com`.
@@ -467,7 +472,7 @@ Delete credentials for a specific project/subscription from the vault.
 == File layout
 
 ----
-.config/                             # relative to working directory (or HAC_HELPER_CONFIG_DIR)
+~/.config/hac-helper/                # or HAC_HELPER_CONFIG_DIR
 ├── projects/
 │   ├── my-project.yaml              # per-project config (environments, aspects, routes)
 │   └── another-project.yaml
@@ -482,18 +487,20 @@ Delete credentials for a specific project/subscription from the vault.
 * *credentials.enc* — AES-256-GCM encrypted. Key derived via Argon2id (time=1, mem=64MiB, threads=4). File permissions: `0600`.
 * *sessions/* — plain JSON cookie files. Treat as sensitive. Permissions: `0600`.
 * The HTTP client skips TLS verification for HAC connections (self-signed certificates in CCV2).
+* Values passed to `cronjobs`, `config get`, `count` and `enumcodes` are escaped/validated before being
+  embedded into FlexibleSearch or Groovy.
 
 == Development
 
 [source,bash]
 ----
-# Build
-go build ./...
-go build -o hac-helper .
-
-# Run all tests
-go test ./...
-go test ./... -v
+make build       # bin/hac-helper, version from git describe
+make test        # go test ./...
+make race        # go test -race ./...
+make lint        # golangci-lint (config: .golangci.yml)
+make check       # vet + lint + test (same as CI)
+make cover       # coverage summary
+make completion  # regenerate completion.sh
 
 # Run tests for a specific package
 go test ./internal/hac/... -v

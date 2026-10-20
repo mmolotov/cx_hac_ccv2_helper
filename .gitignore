@@ -55,8 +55,11 @@ go.work.sum
 .env
 .config
 
-.claude
+# Claude Code: share commands/skills/settings.json, keep personal settings local
+.claude/settings.local.json
 
-hac
-hac-helper
-cx_hac_ccv2_helper
+/bin/
+/hac
+/hac-helper
+/cx_hac_ccv2_helper
+coverage.out

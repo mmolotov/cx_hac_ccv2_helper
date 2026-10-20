@@ -126,18 +126,18 @@ func valueToString(v interface{}) string {
 func printQueryResults(result *hac.QueryResult, format string) error {
 	switch format {
 	case "csv":
-		return printQueryCSV(result)
+		return printQueryCSV(os.Stdout, result)
 	default:
-		return printQueryTable(result)
+		return printQueryTable(os.Stdout, result)
 	}
 }
 
-func printQueryTable(result *hac.QueryResult) error {
+func printQueryTable(out io.Writer, result *hac.QueryResult) error {
 	if len(result.Headers) == 0 && len(result.Results) == 0 {
 		pterm.Info.Println("No results.")
 		return nil
 	}
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, strings.Join(result.Headers, "\t"))
 	for _, row := range result.Results {
 		strs := make([]string, len(row))
@@ -149,8 +149,8 @@ func printQueryTable(result *hac.QueryResult) error {
 	return w.Flush()
 }
 
-func printQueryCSV(result *hac.QueryResult) error {
-	w := csv.NewWriter(os.Stdout)
+func printQueryCSV(out io.Writer, result *hac.QueryResult) error {
+	w := csv.NewWriter(out)
 	w.Comma = ';'
 	if len(result.Headers) > 0 {
 		if err := w.Write(result.Headers); err != nil {
