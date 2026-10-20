@@ -127,7 +127,7 @@ subscriptions:
 
 === Credentials vault
 
-Credentials are stored *encrypted* in `.config/credentials.enc`.
+Credentials are stored *encrypted* in `~/.config/hac-helper/credentials.enc`.
 
 The vault is AES-256-GCM encrypted, key derived via Argon2id from a master password you choose. You are prompted for the master password when credentials are needed.
 
@@ -460,13 +460,30 @@ List all projects and subscriptions stored in the vault.
 ./hac-helper credentials list
 ----
 
-==== credentials delete
+==== credentials edit
 
-Delete credentials for a specific project/subscription from the vault.
+Edit stored credentials interactively, then optionally verify the HAC login
+(useful after `HAC authentication failed: invalid credentials`).
+
+* *direct* project — HAC username and password.
+* *ccv2* project — choose SAP login/password, default HAC login/password, or the HAC override of a
+  single environment. Clearing the username of an override removes it (the environment falls back to the default).
+
+At password prompts press Enter to keep the current password.
 
 [source,bash]
 ----
-./hac-helper credentials delete -p my-project -s t1
+./hac-helper credentials edit my-project              # pick what to edit from a menu
+./hac-helper credentials edit my-project -s t1 -e p1  # straight to HAC creds of p1
+----
+
+==== credentials delete
+
+Delete all credentials of a project from the vault.
+
+[source,bash]
+----
+./hac-helper credentials delete my-project
 ----
 
 == File layout

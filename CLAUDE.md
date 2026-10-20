@@ -52,6 +52,7 @@ cmd/
   enumcodes.go        — enumcodes command
   groovy.go           — groovy command (script/file/dir/stdin)
   credentials.go      — credentials list/delete
+  credentials_edit.go — credentials edit <project> [-s] [-e]; effectiveHACCreds(), setEnvHACCreds()
   loglevel.go         — loglevel <logger>=<LEVEL>...; POST /platform/log4j/changeLevel
   cache.go            — cache clear; POST /monitoring/cache/regionCache/clear
   count.go            — count <TypeCode> [--where]; buildCountQuery(); wraps FlexSearch
@@ -165,7 +166,8 @@ All POST requests include `_csrf` in form body (where applicable) + `X-CSRF-TOKE
 | `flexsearch [query]` | `-p`(local), `-s`(t1), `-e`(d1), `--aspect`(backoffice), `-f table\|csv` | stdin if no arg |
 | `enumcodes <TypeCode>` | `-p`(local), `-s`(t1), `-e`(d1), `-l en` | Fixed FlexSearch query |
 | `groovy [script\|file\|dir]` | `-p`(local), `-s`(t1), `-e`(d1), `-a`(backoffice), `--all-aspects`, `--node`, `--commit` | stdin if no arg |
-| `credentials list/delete` | — | Vault management |
+| `credentials list/delete <project>` | — | Vault management |
+| `credentials edit <project>` | `-s`, `-e` | Edit SAP / default HAC / per-env HAC creds; offers HAC login check |
 | `loglevel <logger>=<LEVEL>...` | `-p`(local), `-s`(t1), `-e`(d1), `-a`(all), `--all-aspects` | Levels: TRACE DEBUG INFO WARN ERROR FATAL OFF |
 | `cache clear` | `-p`(local), `-s`(t1), `-e`(d1), `-a`(all), `--all-aspects` | Clears region cache on all targeted nodes |
 | `count <TypeCode>` | `-p`(local), `-s`(t1), `-e`(d1), `--aspect`(backoffice), `--where` | `SELECT count({PK}) FROM {T} [WHERE ...]` |
