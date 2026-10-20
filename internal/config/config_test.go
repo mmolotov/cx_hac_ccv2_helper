@@ -30,7 +30,7 @@ func TestConfigDirPathDefaultsToHome(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(home, ".config", "hac-helper")
+	want := filepath.Join(home, ".config", "hac")
 	if got != want {
 		t.Errorf("ConfigDirPath() = %q, want %q", got, want)
 	}

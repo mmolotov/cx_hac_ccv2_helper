@@ -25,8 +25,8 @@ ccv2 projects:   SAP login/password, default HAC login/password, or a per-enviro
                  to the HAC credentials of one environment.
 
 At password prompts, press Enter to keep the current password.`,
-	Example: `  hac-helper credentials edit myproj
-  hac-helper credentials edit myproj -s t1 -e p1`,
+	Example: `  hac credentials edit myproj
+  hac credentials edit myproj -s t1 -e p1`,
 	Args: cobra.ExactArgs(1),
 	RunE: runCredsEdit,
 }

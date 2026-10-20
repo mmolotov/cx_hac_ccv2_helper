@@ -20,16 +20,16 @@ var (
 
 // rootCmd is the base command.
 var rootCmd = &cobra.Command{
-	Use:   "hac-helper",
+	Use:   "hac",
 	Short: "CCV2 HAC helper — SAML auth and environment management",
-	Long: `hac-helper authenticates against the SAP Commerce Cloud portal
+	Long: `hac authenticates against the SAP Commerce Cloud portal
 using SAML 2.0 SSO and provides CLI access to environment management APIs.`,
 	Version: version,
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
 		if config.IsLegacyConfigDir() {
 			home, _ := os.UserHomeDir()
 			pterm.Warning.WithWriter(os.Stderr).Printfln("Using legacy config dir ./%s (contains credentials and session cookies). "+
-				"Move it out of the working directory: mkdir -p %s/.config && mv %s %s/.config/hac-helper",
+				"Move it out of the working directory: mkdir -p %s/.config && mv %s %s/.config/hac",
 				config.LegacyConfigDir, home, config.LegacyConfigDir, home)
 		}
 	},

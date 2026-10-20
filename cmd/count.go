@@ -18,8 +18,8 @@ var (
 var countCmd = &cobra.Command{
 	Use:   "count <TypeCode>",
 	Short: "Count items of a given type via FlexibleSearch",
-	Example: `  hac-helper count Product
-  hac-helper count Order --where "{status} = 'CREATED'"`,
+	Example: `  hac count Product
+  hac count Order --where "{status} = 'CREATED'"`,
 	Args: cobra.ExactArgs(1),
 	RunE: runCount,
 }

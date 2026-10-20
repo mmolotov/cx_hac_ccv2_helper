@@ -22,9 +22,9 @@ const uptimeScript = `java.lang.management.ManagementFactory.getRuntimeMXBean().
 var uptimeCmd = &cobra.Command{
 	Use:   "uptime",
 	Short: "Show node start time and uptime via HAC Groovy console",
-	Example: `  hac-helper uptime
-  hac-helper uptime --format timestamp
-  hac-helper uptime -a backoffice -a api`,
+	Example: `  hac uptime
+  hac uptime --format timestamp
+  hac uptime -a backoffice -a api`,
 	Args: cobra.NoArgs,
 	RunE: runUptime,
 }

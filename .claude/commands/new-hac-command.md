@@ -1,8 +1,8 @@
 ---
-description: Scaffold a new hac-helper CLI command that talks to HAC, end to end
+description: Scaffold a new hac CLI command that talks to HAC, end to end
 argument-hint: <command name> — <what it should do>
 ---
-Add a new hac-helper command: $ARGUMENTS
+Add a new hac command: $ARGUMENTS
 
 Follow the checklist in order; do not skip steps.
 
@@ -21,7 +21,7 @@ Follow the checklist in order; do not skip steps.
    with `httptest.NewServer` + `newTestClient` (assert method, path, form fields, CSRF header, error path).
 6. **Docs** — add the command to the "Commands Reference" table and file list in `CLAUDE.md`,
    to the "HAC Endpoints" table if a new endpoint was added, and a section to `README.adoc`.
-7. **Verify** — `make check` (vet + lint + test) and `make build && ./bin/hac-helper <name> --help`.
+7. **Verify** — `make check` (vet + lint + test) and `make build && ./bin/hac <name> --help`.
    Regenerate completions with `make completion`.
 
 Do not run the new command against a real environment unless the user asks; if it changes state
